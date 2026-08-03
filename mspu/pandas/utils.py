@@ -1,75 +1,80 @@
 import pandas as pd
 
 
-def pd_ht(self, n: int = 2, c: int = None, w: int = None, r: int = None) -> None:
-    """
-    Pandas head and tail in one command, with optional rounding.
+@pd.api.extensions.register_dataframe_accessor('ht')
+class HtAccessor:
+    def __init__(self, pandas_obj: pd.DataFrame):
+        self._obj = pandas_obj
 
-    Parameters
-    ----------
-    n : int
-        Number of rows to show from the head and tail. If n < 0 or n is greater than
-        half the number of rows, the entire DataFrame will be shown.
-    c : int
-        Number of columns to show. If None or greater than the number of columns,
-        all columns will be shown.
-    w : int
-        Display width in characters. If None, pandas default is used.
-    r : int
-        Number of decimal places to round float columns. If None or negative,
-        no rounding will be applied.
-
-    Returns
-    -------
-    None
-
-    Examples
-    --------
-    >>> import pandas as pd
-    >>> from mspu.pandas.utils import pd_ht
-    >>> pd.DataFrame.ht = pd_ht
-    >>> df = pd.DataFrame({
-    ...     'foo': [1.12345, 2.98765, 3.14159],
-    ...     'bar': [7, 8, 9],
-    ...     'ham': ['x', 'y', 'z'],
-    ... })
-    >>> df.ht(n=1, c=2, r=2)
-    shape: (3, 3)
-        foo  ...  ham
-    0  1.12  ...    x
-    2  3.14  ...    z
-    """
-    # Columns to show
-    if isinstance(c, int) and c <= 0:
-        c = None
-
-    # Display width
-    if isinstance(w, int) and w <= 0:
-        w = 1000
-
-    # Slice head + tail (or full df)
-    if n < 0 or self.shape[0] <= 2 * n:
-        df = self
-    else:
-        df = pd.concat([self.iloc[:n], self.iloc[-n:]])
-
-    # Round float columns
-    if r is not None and r >= 0:
-        float_cols = df.select_dtypes(include='float').columns
-        df[float_cols] = df[float_cols].round(r)
-
-    with pd.option_context(
-        'display.show_dimensions',
-        False,
-        'display.width',
-        w,
-        'display.max_rows',
-        df.shape[0],
-        'display.max_columns',
-        c,
-    ):
-        print(f'shape: {self.shape}')
-        print(df)
+    def __call__(self, n: int = 2, c: int = None, w: int = None, r: int = None) -> None:
+        """
+        Pandas head and tail in one command, with optional rounding.
+    
+        Parameters
+        ----------
+        n : int
+            Number of rows to show from the head and tail. If n < 0 or n is greater than
+            half the number of rows, the entire DataFrame will be shown.
+        c : int
+            Number of columns to show. If None or greater than the number of columns,
+            all columns will be shown.
+        w : int
+            Display width in characters. If None, pandas default is used.
+        r : int
+            Number of decimal places to round float columns. If None or negative,
+            no rounding will be applied.
+    
+        Returns
+        -------
+        None
+    
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> from mspu.pandas.utils import pd_ht
+        >>> pd.DataFrame.ht = pd_ht
+        >>> df = pd.DataFrame({
+        ...     'foo': [1.12345, 2.98765, 3.14159],
+        ...     'bar': [7, 8, 9],
+        ...     'ham': ['x', 'y', 'z'],
+        ... })
+        >>> df.ht(n=1, c=2, r=2)
+        shape: (3, 3)
+            foo  ...  ham
+        0  1.12  ...    x
+        2  3.14  ...    z
+        """
+        # Columns to show
+        if isinstance(c, int) and c <= 0:
+            c = None
+    
+        # Display width
+        if isinstance(w, int) and w <= 0:
+            w = 1000
+    
+        # Slice head + tail (or full df)
+        if n < 0 or self.shape[0] <= 2 * n:
+            df = self
+        else:
+            df = pd.concat([self.iloc[:n], self.iloc[-n:]])
+    
+        # Round float columns
+        if r is not None and r >= 0:
+            float_cols = df.select_dtypes(include='float').columns
+            df[float_cols] = df[float_cols].round(r)
+    
+        with pd.option_context(
+            'display.show_dimensions',
+            False,
+            'display.width',
+            w,
+            'display.max_rows',
+            df.shape[0],
+            'display.max_columns',
+            c,
+        ):
+            print(f'shape: {self.shape}')
+            print(df)
 
 
 def remove_cols_utc(df: pd.DataFrame) -> pd.DataFrame:
