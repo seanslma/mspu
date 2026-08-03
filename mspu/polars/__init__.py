@@ -1,5 +1,5 @@
+# noqa: F401 — registers the .ht accessor as a side effect
 from .utils import (
-    pl_ht,
     inf_count,
     nan_count,
     nul_count,
@@ -8,7 +8,6 @@ from .utils import (
 )
 
 __all__ = [
-    'pl_ht',
     'inf_count',
     'nan_count',
     'nul_count',

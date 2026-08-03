@@ -1,7 +1,7 @@
 mspu
 ====
 
-My python utils package.
+Ma's python utils package.
 
 Submodules
 ----------

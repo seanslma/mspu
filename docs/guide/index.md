@@ -6,8 +6,8 @@ This user guide is intended to walk you through getting started, providing examp
 
 ## Structure
 
-User Guide (You Are Here): Conceptual overviews, installation steps, and tutorials.
+User Guide: Conceptual overviews, installation steps, and tutorials.
 
-API Reference (External Link): Detailed, auto-generated documentation for every function and class (powered by Sphinx).
+API Reference: Detailed, auto-generated documentation for every function and class (powered by Sphinx).
 
 Check out the Tutorial to see how mspu works!

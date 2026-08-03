@@ -2,14 +2,21 @@ import pandas as pd
 
 
 @pd.api.extensions.register_dataframe_accessor('ht')
-class HtAccessor:
+class PdHt:
     def __init__(self, pandas_obj: pd.DataFrame):
         self._obj = pandas_obj
 
-    def __call__(self, n: int = 2, c: int = None, w: int = None, r: int = None) -> None:
+    def __call__(
+        self,
+        n: int = 2,
+        c: int = None,
+        w: int = None,
+        cw: int = None,
+        r: int = None,
+    ) -> None:
         """
         Pandas head and tail in one command, with optional rounding.
-    
+
         Parameters
         ----------
         n : int
@@ -20,19 +27,20 @@ class HtAccessor:
             all columns will be shown.
         w : int
             Display width in characters. If None, pandas default is used.
+        cw : int
+            Column width in characters. If None, pandas default is used.
         r : int
             Number of decimal places to round float columns. If None or negative,
             no rounding will be applied.
-    
+
         Returns
         -------
         None
-    
+
         Examples
         --------
         >>> import pandas as pd
-        >>> from mspu.pandas.utils import pd_ht
-        >>> pd.DataFrame.ht = pd_ht
+        >>> import mspu.pandas # registry ht
         >>> df = pd.DataFrame({
         ...     'foo': [1.12345, 2.98765, 3.14159],
         ...     'bar': [7, 8, 9],
@@ -47,22 +55,22 @@ class HtAccessor:
         # Columns to show
         if isinstance(c, int) and c <= 0:
             c = None
-    
+
         # Display width
         if isinstance(w, int) and w <= 0:
             w = 1000
-    
+
         # Slice head + tail (or full df)
-        if n < 0 or self.shape[0] <= 2 * n:
-            df = self
+        if n < 0 or self._obj.shape[0] <= 2 * n:
+            df = self._obj
         else:
-            df = pd.concat([self.iloc[:n], self.iloc[-n:]])
-    
+            df = pd.concat([self._obj.iloc[:n], self._obj.iloc[-n:]])
+
         # Round float columns
         if r is not None and r >= 0:
             float_cols = df.select_dtypes(include='float').columns
             df[float_cols] = df[float_cols].round(r)
-    
+
         with pd.option_context(
             'display.show_dimensions',
             False,
@@ -70,10 +78,12 @@ class HtAccessor:
             w,
             'display.max_rows',
             df.shape[0],
+            'display.max_colwidth',
+            cw,
             'display.max_columns',
             c,
         ):
-            print(f'shape: {self.shape}')
+            print(f'shape: {self._obj.shape}')
             print(df)
 
 
