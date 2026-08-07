@@ -12,7 +12,8 @@ class PlHt:
         self,
         n: int = 2,
         c: int = None,
-        w: int = None,
+        w: int = -1,
+        cw: int = None,
         r: int = None,
     ) -> None:
         """
@@ -28,6 +29,8 @@ class PlHt:
             all columns will be shown.
         w : int
             Width of the output in characters. If None, the width will be determined.
+        cw : int
+            Column width in characters. If None, the column width will be determined.
         r : int
             Number of decimal places to round float and decimal columns. If None or negative,
             no rounding will be applied.
@@ -67,6 +70,7 @@ class PlHt:
             tbl_width_chars=w,
             tbl_rows=df.shape[0],
             tbl_cols=c,
+            fmt_str_lengths=cw,
         ):
             print(f'shape: {self._df.shape}')
             print(df)

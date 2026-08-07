@@ -10,7 +10,7 @@ class PdHt:
         self,
         n: int = 2,
         c: int = None,
-        w: int = None,
+        w: int = -1,
         cw: int = None,
         r: int = None,
     ) -> None:
@@ -78,10 +78,10 @@ class PdHt:
             w,
             'display.max_rows',
             df.shape[0],
-            'display.max_colwidth',
-            cw,
             'display.max_columns',
             c,
+            'display.max_colwidth',
+            cw,
         ):
             print(f'shape: {self._obj.shape}')
             print(df)
