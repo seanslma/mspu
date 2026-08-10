@@ -1,6 +1,6 @@
 # mspu
 
-My python utils package. It includes some commonly used functions, like `gen_rand_df` and `explode_date_range`.
+Ma's python utils (`mspu`) package. It current includes some commonly used functions, like `gen_rand_df` (creating dummy pandas dataframes for testing) and `explode_date_range` (exploding date ranges with high performance), as well as `ht` (displaying both pandas and polars dataframe head and tail).
 
 ## How to install `mspu`
 

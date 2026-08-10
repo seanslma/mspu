@@ -201,9 +201,8 @@ def gen_rand_df(
     Simply specify the number of columns for each type.
 
     >>> import pandas as pd
+    >>> import mspu.pandas  # registry ht
     >>> from mspu.data import gen_rand_df
-    >>> from mspu.pandas import pd_ht
-    >>> pd.DataFrame.ht = pd_ht
     >>> df = gen_rand_df(
     ...     nrow=365 * 24 * 60,
     ...     str_cols=1,
@@ -222,9 +221,8 @@ def gen_rand_df(
     Provide detailed parameters for each column type.
 
     >>> import pandas as pd
+    >>> import mspu.pandas  # registry ht
     >>> from mspu.data import gen_rand_df
-    >>> from mspu.pandas import pd_ht
-    >>> pd.DataFrame.ht = pd_ht
     >>> d2 = gen_rand_df(
     ...     nrow=10,
     ...     str_cols={
