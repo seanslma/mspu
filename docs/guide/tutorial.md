@@ -11,12 +11,11 @@ pip install mspu
 
 ## 2. Displaying dataframe
 
-When you print a pandas DataFrame, sometimes the default settings are not good enough so you need to adjust the display width, number of rows and columns. Here we provide a simple function for your convinence.
+When you print a pandas DataFrame, sometimes the default settings are not good enough so you need to adjust the display width, number of rows and columns. Here we provide a simple function for your convenience. Importing `mspu.pandas` registers the `.ht` accessor on `pd.DataFrame`:
 
 ```py
 import pandas as pd
-from mspu.pandas import pd_ht
-pd.DataFrame.ht = pd_ht
+import mspu.pandas  # registers the .ht accessor
 df = pd.DataFrame({
   'foo': [1.12345, 2.98765, 3.14159],
   'bar': [7, 8, 9],

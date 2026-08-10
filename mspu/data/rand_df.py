@@ -1,7 +1,8 @@
 import string
+from collections.abc import Iterable
+
 import numpy as np
 import pandas as pd
-from collections.abc import Iterable
 
 
 def gen_rand_strs(
@@ -20,10 +21,10 @@ def gen_rand_strs(
 def gen_str_vals(
     size: int,
     rng: np.random.Generator,
-    str_cnt: int = None,
-    str_len: int | tuple[int, int] = None,
-    str_chars: list[str] = None,
-    col_strs: list[str] = None,
+    str_cnt: int | None = None,
+    str_len: int | tuple[int, int] | None = None,
+    str_chars: list[str] | None = None,
+    col_strs: list[str] | None = None,
 ) -> np.ndarray:
     if str_cnt is None:
         str_cnt = 10
@@ -42,11 +43,11 @@ def gen_str_vals(
 def gen_ts_vals(
     size: int,
     rng: np.random.Generator,
-    start_date: str = None,
-    end_date: str = None,
-    freq: str = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    freq: str | None = None,
     random: bool = False,
-) -> np.ndarray:
+) -> pd.DatetimeIndex:
     if start_date is None:
         start_date = '2024-01-01'
     if end_date is None:
@@ -64,14 +65,16 @@ def gen_ts_vals(
 def gen_num_vals(
     size: int,
     rng: np.random.Generator,
-    low: int | float = None,
-    high: int | float = None,
-    dtype: str = None,
+    low: float | None = None,
+    high: float | None = None,
+    dtype: str = 'f',
 ) -> np.ndarray:
     if low is None:
         low = 0
     if high is None:
         high = 2
+    if dtype is None or dtype == '':
+        dtype = 'f'
     func = rng.integers if dtype[0] == 'i' else rng.uniform
     vals = func(low=low, high=high, size=size)
     return vals
@@ -79,9 +82,9 @@ def gen_num_vals(
 
 def gen_missing_vals(
     vals: np.ndarray,
-    rng: np.random._generator.Generator,
+    rng: np.random.Generator,
     dtype: str,
-    missing_pct: float = None,
+    missing_pct: float | None = None,
 ) -> np.ndarray:
     if missing_pct is None or missing_pct <= 0 or missing_pct >= 1:
         return vals
@@ -132,10 +135,10 @@ def sanitize_parameters(
 
 def gen_rand_df(
     nrow: int,
-    str_cols: dict = None,
-    ts_cols: dict = None,
-    int_cols: dict = None,
-    float_cols: dict = None,
+    str_cols: dict | None = None,
+    ts_cols: dict | None = None,
+    int_cols: dict | None = None,
+    float_cols: dict | None = None,
     rand_seed: int = 11,
 ) -> pd.DataFrame:
     """

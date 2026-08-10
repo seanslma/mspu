@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
-from mspu.pandas import df_diffs
+
+import mspu.pandas  # noqa: F401 — registers the .ht accessor
+from mspu.pandas import df_diffs, remove_cols_utc
 
 
 def test_df_diffs_basic():
@@ -80,3 +82,43 @@ def test_df_diffs_different_indices():
 
     # Should return rows with all differences
     assert len(result) > 0
+
+
+def test_ht_accessor_registered():
+    df = pd.DataFrame({'foo': [1.12345, 2.98765], 'bar': [7, 8]})
+    assert hasattr(df, 'ht')
+
+
+def test_ht_rounding(capsys):
+    df = pd.DataFrame({'foo': [1.12345, 2.98765, 3.14159], 'bar': [7, 8, 9]})
+    df.ht(n=1, c=2, r=2)
+    out = capsys.readouterr().out
+    assert '1.12' in out
+    assert '3.14' in out
+    assert 'shape: (3, 2)' in out
+
+
+def test_ht_full_df_when_small():
+    df = pd.DataFrame({'foo': [1.12345, 2.98765]})
+    df.ht(n=10)  # n larger than half the rows → show all
+    # no exception
+
+
+def test_remove_cols_utc():
+    df = pd.DataFrame(
+        {
+            'id': [1, 2],
+            'utc_ts': pd.to_datetime(
+                ['2023-01-01 00:00:00+00:00', '2023-01-02 00:00:00+00:00']
+            ),
+            'local_ts': pd.to_datetime(
+                ['2023-01-01 00:00:00+02:00', '2023-01-02 00:00:00+02:00']
+            ),
+        }
+    )
+    result = remove_cols_utc(df)
+    # UTC column becomes tz-naive, non-UTC column is untouched
+    assert result['utc_ts'].dt.tz is None
+    assert result['local_ts'].dt.tz is not None
+    # original dataframe is mutated in place
+    assert df['utc_ts'].dt.tz is None

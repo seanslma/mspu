@@ -17,6 +17,13 @@ dependencies = [
     "numpy",
     "pandas",
     "polars",
+    "cryptography",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pyarrow",
 ]
 
 [tool.hatch.version]
@@ -35,3 +42,7 @@ target-version = "py312"
 [tool.ruff.format]
 preview = false
 quote-style = "single"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

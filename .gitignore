@@ -170,3 +170,8 @@ Footer
 
 # Visual Studio Code settings
 .vscode/
+
+# conda build artifacts
+conda_*
+**/conda_*
+

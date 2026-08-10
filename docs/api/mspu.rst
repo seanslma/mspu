@@ -10,5 +10,8 @@ Submodules
     :maxdepth: 1
 
     data
+    datetime
+    io
     pandas
     polars
+    security

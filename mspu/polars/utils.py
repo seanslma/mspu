@@ -1,6 +1,7 @@
+from typing import Literal
+
 import polars as pl
 import polars.selectors as cs
-from typing import Literal
 
 
 @pl.api.register_dataframe_namespace('ht')
@@ -11,10 +12,10 @@ class PlHt:
     def __call__(
         self,
         n: int = 2,
-        c: int = None,
+        c: int | None = None,
         w: int = -1,
-        cw: int = None,
-        r: int = None,
+        cw: int | None = None,
+        r: int | None = None,
     ) -> None:
         """
         Polars head and tail in one command, with optional rounding.
@@ -76,12 +77,26 @@ class PlHt:
             print(df)
 
 
-def parquet_to_csv(filepath: str):
+def parquet_to_csv(filepath: str) -> str:
     """
     Read parquet and save as csv.
+
+    The output path is the input path with its extension replaced by ``.csv``,
+    so both ``.parquet`` and shorter variants like ``.pq`` work correctly.
+
+    Parameters
+    ----------
+    filepath : str
+        Path to the input parquet file.
+
+    Returns
+    -------
+    str
+        Path to the written csv file.
     """
-    filepath_csv = f'{filepath[:-7]}csv'
+    filepath_csv = filepath.rsplit('.', 1)[0] + '.csv'
     pl.read_parquet(filepath).write_csv(filepath_csv)
+    return filepath_csv
 
 
 def lowercase_polars_df(
@@ -104,40 +119,53 @@ def to_float32_polars_df(df: pl.DataFrame) -> pl.DataFrame:
     """
     Convert all numerical columns type to float32.
     """
-    df = df.with_columns((cs.float() | cs.decimal()).cast(pl.Float32))
+    df = df.with_columns(cs.numeric().cast(pl.Float32))
     return df
+
+
+def _count_vals(df: pl.DataFrame, method: str, out_col: str) -> pl.DataFrame:
+    """
+    Count special values (infinite, NaN) in numeric columns of a DataFrame.
+
+    Non-numeric columns are skipped because ``is_infinite``/``is_nan`` are only
+    supported on float/decimal columns.
+    """
+    numeric_cols = [
+        col
+        for col in df.columns
+        if df.schema[col].is_float() or df.schema[col].is_decimal()
+    ]
+    if not numeric_cols:
+        return pl.DataFrame(schema={'col': pl.String, out_col: pl.UInt32})
+    df_counts = (
+        df.select(
+            [getattr(pl.col(col), method)().sum().alias(col) for col in numeric_cols]
+        )
+        .unpivot(variable_name='col', value_name=out_col)
+        .filter(pl.col(out_col) > 0)
+        .sort(out_col, descending=True)
+    )
+    return df_counts
 
 
 def inf_count(df: pl.DataFrame) -> pl.DataFrame:
     """
-    Counts the number of infinite values in each column of a Polars DataFrame.
+    Counts the number of infinite values in each numeric column of a Polars DataFrame.
 
-    Returns a new DataFrame with the column names and their corresponding counts,
-    sorted in descending order.
+    Non-numeric columns are ignored. Returns a new DataFrame with the column names
+    and their corresponding counts, sorted in descending order.
     """
-    df_inf = (
-        df.select([(pl.col(col).is_infinite().sum().alias(col)) for col in df.columns])
-        .unpivot(variable_name='col', value_name='inf_cnt')
-        .filter(pl.col('inf_cnt') > 0)
-        .sort('inf_cnt', descending=True)
-    )
-    return df_inf
+    return _count_vals(df, 'is_infinite', 'inf_cnt')
 
 
 def nan_count(df: pl.DataFrame) -> pl.DataFrame:
     """
-    Counts the number of NaN values in each column of a Polars DataFrame.
+    Counts the number of NaN values in each numeric column of a Polars DataFrame.
 
-    Returns a new DataFrame with the column names and their corresponding counts,
-    sorted in descending order.
+    Non-numeric columns are ignored. Returns a new DataFrame with the column names
+    and their corresponding counts, sorted in descending order.
     """
-    df_nan = (
-        df.select([(pl.col(col).is_nan().sum().alias(col)) for col in df.columns])
-        .unpivot(variable_name='col', value_name='nan_cnt')
-        .filter(pl.col('nan_cnt') > 0)
-        .sort('nan_cnt', descending=True)
-    )
-    return df_nan
+    return _count_vals(df, 'is_nan', 'nan_cnt')
 
 
 def nul_count(df: pl.DataFrame) -> pl.DataFrame:

@@ -1,5 +1,6 @@
-import pandas as pd
 from typing import Literal
+
+import pandas as pd
 
 
 def explode_date_range(
@@ -54,7 +55,7 @@ def explode_date_range(
 
     Returns
     -------
-    pl.DataFrame
+    pd.DataFrame
         The DataFrame same as the input but with
         start/end date columns replaced by the new date column
 
@@ -145,12 +146,9 @@ def explode_date_range(
             levels += [date_col]
             levels_old += [date_col]
 
-    df = df.reset_index(drop=drop_index).astype(
-        {
-            start_date_col: 'datetime64[ns]',
-            end_date_col: 'datetime64[ns]',
-        }
-    )
+    df = df.reset_index(drop=drop_index)
+    df[start_date_col] = pd.to_datetime(df[start_date_col])
+    df[end_date_col] = pd.to_datetime(df[end_date_col])
 
     # offset start date
     if start_date_offset is not None:
@@ -166,7 +164,7 @@ def explode_date_range(
 
     # limit start_date and replace null with min_date
     if min_date is not None:
-        min_date = pd.to_datetime(min_date, dayfirst=True)
+        min_date = pd.to_datetime(min_date)
         df[start_date_col] = (
             df[start_date_col]
             .fillna(min_date)
@@ -187,22 +185,15 @@ def explode_date_range(
 
     # limit end_date and replace null with max_date
     if max_date is not None:
-        max_date = pd.to_datetime(max_date, dayfirst=True)
+        max_date = pd.to_datetime(max_date)
         df[end_date_col] = (
             df[end_date_col]
             .fillna(max_date)
             .where(df[end_date_col] < max_date, max_date)
         )
 
-    # FIXME: special regarding pandas version
-    pd_version = tuple(int(n) for n in pd.__version__.split('.')[:3])
-    if pd_version >= (1, 4, 0):
-        inclusive_par = {'inclusive': inclusive}
-    else:
-        if inclusive == 'neither':
-            inclusive = 'right'
-            df[end_date_col] -= pd.DateOffset(microseconds=1)
-        inclusive_par = {'closed': None if inclusive == 'both' else inclusive}
+    # inclusive parameter is supported since pandas 1.4
+    inclusive_par = {'inclusive': inclusive}
 
     # if inclusive = 'left' we expect date_end is exclusive
     #   so records with start_date == end_date should be excluded

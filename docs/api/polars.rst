@@ -12,9 +12,9 @@ Functions
    :toctree: api/
    :nosignatures:
 
-   pl_ht
    inf_count
    nan_count
    nul_count
    lowercase_polars_df
    to_float32_polars_df
+   parquet_to_csv

@@ -1,3 +1,5 @@
+import datetime
+
 import pandas as pd
 
 
@@ -9,10 +11,10 @@ class PdHt:
     def __call__(
         self,
         n: int = 2,
-        c: int = None,
+        c: int | None = None,
         w: int = -1,
-        cw: int = None,
-        r: int = None,
+        cw: int | None = None,
+        r: int | None = None,
     ) -> None:
         """
         Pandas head and tail in one command, with optional rounding.
@@ -90,10 +92,13 @@ class PdHt:
 def remove_cols_utc(df: pd.DataFrame) -> pd.DataFrame:
     """
     Converts datetime columns in UTC to timezone-naive (tz=None).
+
+    Only columns whose timezone offset is exactly UTC are converted, so
+    columns with fixed offsets like ``+02:00`` are left untouched.
     """
     for col in df.select_dtypes(include=['datetimetz']).columns:
         tz = df[col].dt.tz
-        if tz is not None and 'utc' in str(tz).lower():
+        if tz is not None and tz.utcoffset(None) == datetime.timedelta(0):
             df[col] = df[col].dt.tz_localize(None)
     return df
 
