@@ -87,6 +87,42 @@ class PdHt:
             print(df)
 
 
+def create_empty_df(
+    col_types: dict[str, str],
+    ind_types: dict[str, str] = None,
+) -> pd.DataFrame:
+    """
+    Create an empty df with specified index and column types
+    col_types: column name and type
+    ind_types: index level name and type
+    """
+    if ind_types is None:
+        ind_types = {}
+    df = pd.DataFrame({
+        key: pd.Series(dtype=value)
+        for key, value in {**ind_types, **col_types}.items()
+    })
+    if ind_types:
+        df = df.set_index(list(ind_types.keys()))
+    return df
+
+
+def explode_int_range(df, col, start_col, end_col, step=1):
+    if df.empty:
+        dt = create_empty_df({
+            'i': 'int',
+            'v': 'int',
+        })
+    else:
+        dt = pd.concat([
+            pd.DataFrame({'i': i, 'v': range(start, end + 1, step)})
+            for i, (start, end) in enumerate(zip(df[start_col], df[end_col]))
+        ])
+    dt = dt.set_index('i').rename_axis(None, axis=0)
+    df = df.reindex(dt.index).assign(**{col: dt.v})
+    return df
+
+
 def remove_cols_utc(df: pd.DataFrame) -> pd.DataFrame:
     """
     Converts datetime columns in UTC to timezone-naive (tz=None).
