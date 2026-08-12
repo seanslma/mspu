@@ -1,3 +1,5 @@
+import datetime
+
 import pandas as pd
 
 
@@ -126,10 +128,13 @@ def explode_int_range(df, col, start_col, end_col, step=1):
 def remove_cols_utc(df: pd.DataFrame) -> pd.DataFrame:
     """
     Converts datetime columns in UTC to timezone-naive (tz=None).
+
+    Only columns whose timezone offset is exactly UTC are converted, so
+    columns with fixed offsets like ``+02:00`` are left untouched.
     """
     for col in df.select_dtypes(include=['datetimetz']).columns:
         tz = df[col].dt.tz
-        if tz is not None and 'utc' in str(tz).lower():
+        if tz is not None and tz.utcoffset(None) == datetime.timedelta(0):
             df[col] = df[col].dt.tz_localize(None)
     return df
 
