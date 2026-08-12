@@ -46,7 +46,7 @@ def gen_ts_vals(
     end_date: str = None,
     freq: str = None,
     random: bool = False,
-) -> np.ndarray:
+) -> pd.DatetimeIndex | np.ndarray:
     if start_date is None:
         start_date = '2024-01-01'
     if end_date is None:
@@ -66,12 +66,14 @@ def gen_num_vals(
     rng: np.random.Generator,
     low: int | float = None,
     high: int | float = None,
-    dtype: str = None,
+    dtype: str = 'f',
 ) -> np.ndarray:
     if low is None:
         low = 0
     if high is None:
         high = 2
+    if dtype is None or dtype == '':
+        dtype = 'f'
     func = rng.integers if dtype[0] == 'i' else rng.uniform
     vals = func(low=low, high=high, size=size)
     return vals
@@ -79,7 +81,7 @@ def gen_num_vals(
 
 def gen_missing_vals(
     vals: np.ndarray,
-    rng: np.random._generator.Generator,
+    rng: np.random.Generator,
     dtype: str,
     missing_pct: float = None,
 ) -> np.ndarray:
