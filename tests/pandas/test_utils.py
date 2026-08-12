@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from mspu.pandas import df_diffs
+from mspu.pandas.utils import remove_cols_utc
 
 
 def test_df_diffs_basic():
@@ -80,3 +81,23 @@ def test_df_diffs_different_indices():
 
     # Should return rows with all differences
     assert len(result) > 0
+
+
+def test_remove_cols_utc():
+    df = pd.DataFrame(
+        {
+            'id': [1, 2],
+            'utc_ts': pd.to_datetime(
+                ['2023-01-01 00:00:00+00:00', '2023-01-02 00:00:00+00:00']
+            ),
+            'local_ts': pd.to_datetime(
+                ['2023-01-01 00:00:00+02:00', '2023-01-02 00:00:00+02:00']
+            ),
+        }
+    )
+    result = remove_cols_utc(df)
+    # UTC column becomes tz-naive, non-UTC column is untouched
+    assert result['utc_ts'].dt.tz is None
+    assert result['local_ts'].dt.tz is not None
+    # original dataframe is mutated in place
+    assert df['utc_ts'].dt.tz is None
