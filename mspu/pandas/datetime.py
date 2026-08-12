@@ -54,7 +54,7 @@ def explode_date_range(
 
     Returns
     -------
-    pl.DataFrame
+    pd.DataFrame
         The DataFrame same as the input but with
         start/end date columns replaced by the new date column
 
@@ -145,12 +145,9 @@ def explode_date_range(
             levels += [date_col]
             levels_old += [date_col]
 
-    df = df.reset_index(drop=drop_index).astype(
-        {
-            start_date_col: 'datetime64[ns]',
-            end_date_col: 'datetime64[ns]',
-        }
-    )
+    df = df.reset_index(drop=drop_index)
+    df[start_date_col] = pd.to_datetime(df[start_date_col])
+    df[end_date_col] = pd.to_datetime(df[end_date_col])
 
     # offset start date
     if start_date_offset is not None:
@@ -166,7 +163,7 @@ def explode_date_range(
 
     # limit start_date and replace null with min_date
     if min_date is not None:
-        min_date = pd.to_datetime(min_date, dayfirst=True)
+        min_date = pd.to_datetime(min_date)
         df[start_date_col] = (
             df[start_date_col]
             .fillna(min_date)
@@ -187,7 +184,7 @@ def explode_date_range(
 
     # limit end_date and replace null with max_date
     if max_date is not None:
-        max_date = pd.to_datetime(max_date, dayfirst=True)
+        max_date = pd.to_datetime(max_date)
         df[end_date_col] = (
             df[end_date_col]
             .fillna(max_date)
