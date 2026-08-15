@@ -47,6 +47,14 @@ def test_lowercase_columns_only():
 def test_to_float32_polars_df():
     df = pl.DataFrame({'a': [1, 2], 'b': [1.5, 2.5], 'c': ['x', 'y']})
     result = to_float32_polars_df(df)
+    assert result.schema['a'] == pl.Int64  # ints left untouched by default
+    assert result.schema['b'] == pl.Float32
+    assert result.schema['c'] == pl.String
+
+
+def test_to_float32_polars_df_convert_int_cols():
+    df = pl.DataFrame({'a': [1, 2], 'b': [1.5, 2.5], 'c': ['x', 'y']})
+    result = to_float32_polars_df(df, convert_int_cols=True)
     assert result.schema['a'] == pl.Float32
     assert result.schema['b'] == pl.Float32
     assert result.schema['c'] == pl.String
@@ -55,34 +63,41 @@ def test_to_float32_polars_df():
 def test_inf_count():
     df = pl.DataFrame({'a': [1.0, float('inf')], 'b': [1.0, 2.0]})
     result = inf_count(df)
-    assert result['col'].to_list() == ['a']
-    assert result['inf_cnt'].to_list() == [1]
+    assert result['col'].to_list() == ['a', 'b']
+    assert result['inf_cnt'].to_list() == [1, 0]
 
 
 def test_inf_count_ignores_non_numeric():
-    # previously crashed on string columns
+    # non-numeric columns are kept with a count of 0 (previously crashed)
     df = pl.DataFrame({'a': [1.0, float('inf')], 's': ['x', 'y']})
     result = inf_count(df)
-    assert result['col'].to_list() == ['a']
+    assert result['col'].to_list() == ['a', 's']
+    assert result['inf_cnt'].to_list() == [1, 0]
 
 
 def test_nan_count():
     df = pl.DataFrame({'a': [1.0, float('nan')], 'b': [1.0, 2.0]})
     result = nan_count(df)
-    assert result['col'].to_list() == ['a']
-    assert result['nan_cnt'].to_list() == [1]
+    assert result['col'].to_list() == ['a', 'b']
+    assert result['nan_cnt'].to_list() == [1, 0]
 
 
 def test_nan_count_ignores_non_numeric():
+    # non-numeric columns are kept with a count of 0 (previously crashed)
     df = pl.DataFrame({'a': [1.0, float('nan')], 's': ['x', 'y']})
     result = nan_count(df)
-    assert result['col'].to_list() == ['a']
+    assert result['col'].to_list() == ['a', 's']
+    assert result['nan_cnt'].to_list() == [1, 0]
 
 
 def test_counts_no_numeric_columns():
     df = pl.DataFrame({'s': ['x', None]})
-    assert inf_count(df).shape == (0, 2)
-    assert nan_count(df).shape == (0, 2)
+    inf_result = inf_count(df)
+    assert inf_result['col'].to_list() == ['s']
+    assert inf_result['inf_cnt'].to_list() == [0]
+    nan_result = nan_count(df)
+    assert nan_result['col'].to_list() == ['s']
+    assert nan_result['nan_cnt'].to_list() == [0]
 
 
 def test_nul_count():
@@ -96,8 +111,9 @@ def test_parquet_to_csv_pq(tmp_path):
     df = pl.DataFrame({'a': [1, 2], 'b': ['x', 'y']})
     pq_path = tmp_path / 'data.pq'
     df.write_parquet(pq_path)
-    csv_path = parquet_to_csv(str(pq_path))
-    assert csv_path == str(tmp_path / 'data.csv')
+    parquet_to_csv(str(pq_path))
+    csv_path = tmp_path / 'data.csv'
+    assert csv_path.exists()
     assert pl.read_csv(csv_path).equals(df)
 
 
@@ -105,5 +121,7 @@ def test_parquet_to_csv_full_extension(tmp_path):
     df = pl.DataFrame({'a': [1, 2]})
     pq_path = tmp_path / 'data.parquet'
     df.write_parquet(pq_path)
-    csv_path = parquet_to_csv(str(pq_path))
-    assert csv_path == str(tmp_path / 'data.csv')
+    parquet_to_csv(str(pq_path))
+    csv_path = tmp_path / 'data.csv'
+    assert csv_path.exists()
+    assert pl.read_csv(csv_path).equals(df)
