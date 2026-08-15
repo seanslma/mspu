@@ -76,7 +76,7 @@ class PlHt:
             print(df)
 
 
-def parquet_to_csv(filepath: str) -> str:
+def parquet_to_csv(filepath: str) -> None:
     """
     Read parquet and save as csv.
 
@@ -87,15 +87,9 @@ def parquet_to_csv(filepath: str) -> str:
     ----------
     filepath : str
         Path to the input parquet file.
-
-    Returns
-    -------
-    str
-        Path to the written csv file.
     """
     filepath_csv = filepath.rsplit('.', 1)[0] + '.csv'
     pl.read_parquet(filepath).write_csv(filepath_csv)
-    return filepath_csv
 
 
 def lowercase_polars_df(
@@ -114,44 +108,63 @@ def lowercase_polars_df(
     return df
 
 
-def to_float32_polars_df(df: pl.DataFrame) -> pl.DataFrame:
+def to_float32_polars_df(
+    df: pl.DataFrame, convert_int_cols: bool = False
+) -> pl.DataFrame:
     """
-    Convert all numerical columns type to float32.
+    Convert float and decimal columns to float32 to reduce memory usage.
+
+    Integer columns are left untouched unless ``convert_int_cols`` is True,
+    since converting ints to floats can lose precision for large values.
+
+    Parameters
+    ----------
+    df : pl.DataFrame
+        Input DataFrame.
+    convert_int_cols : bool, default False
+        Whether to also convert integer columns to float32.
+
+    Returns
+    -------
+    pl.DataFrame
+        DataFrame with float/decimal columns cast to float32.
     """
-    df = df.with_columns(cs.numeric().cast(pl.Float32))
-    return df
+    if convert_int_cols:
+        cols = cs.numeric()
+    else:
+        cols = cs.float() | cs.decimal()
+    return df.with_columns(cols.cast(pl.Float32))
 
 
 def _count_vals(df: pl.DataFrame, method: str, out_col: str) -> pl.DataFrame:
     """
-    Count special values (infinite, NaN) in numeric columns of a DataFrame.
+    Count special values (infinite, NaN) in a DataFrame.
 
-    Non-numeric columns are skipped because ``is_infinite``/``is_nan`` are only
-    supported on float/decimal columns.
+    Every column is kept; columns whose dtype does not support
+    ``is_infinite``/``is_nan`` (i.e. non-float/decimal) get a count of 0.
     """
-    numeric_cols = [
-        col
-        for col in df.columns
-        if df.schema[col].is_float() or df.schema[col].is_decimal()
-    ]
-    if not numeric_cols:
+    if not df.columns:
         return pl.DataFrame(schema={'col': pl.String, out_col: pl.UInt32})
-    df_counts = (
-        df.select(
-            [getattr(pl.col(col), method)().sum().alias(col) for col in numeric_cols]
-        )
+    exprs = []
+    for col in df.columns:
+        dtype = df.schema[col]
+        if dtype.is_float() or dtype.is_decimal():
+            exprs.append(getattr(pl.col(col), method)().sum().alias(col))
+        else:
+            exprs.append(pl.lit(0, dtype=pl.UInt32).alias(col))
+    return (
+        df.select(exprs)
         .unpivot(variable_name='col', value_name=out_col)
-        .filter(pl.col(out_col) > 0)
         .sort(out_col, descending=True)
     )
-    return df_counts
 
 
 def inf_count(df: pl.DataFrame) -> pl.DataFrame:
     """
-    Counts the number of infinite values in each numeric column of a Polars DataFrame.
+    Counts the number of infinite values in each column of a Polars DataFrame.
 
-    Non-numeric columns are ignored. Returns a new DataFrame with the column names
+    Columns whose dtype does not support infinite values (non-float/decimal)
+    are kept with a count of 0. Returns a new DataFrame with the column names
     and their corresponding counts, sorted in descending order.
     """
     return _count_vals(df, 'is_infinite', 'inf_cnt')
@@ -159,10 +172,11 @@ def inf_count(df: pl.DataFrame) -> pl.DataFrame:
 
 def nan_count(df: pl.DataFrame) -> pl.DataFrame:
     """
-    Counts the number of NaN values in each numeric column of a Polars DataFrame.
+    Counts the number of NaN values in each column of a Polars DataFrame.
 
-    Non-numeric columns are ignored. Returns a new DataFrame with the column names
-    and their corresponding counts, sorted in descending order.
+    Columns whose dtype does not support NaN (non-float/decimal) are kept
+    with a count of 0. Returns a new DataFrame with the column names and
+    their corresponding counts, sorted in descending order.
     """
     return _count_vals(df, 'is_nan', 'nan_cnt')
 
