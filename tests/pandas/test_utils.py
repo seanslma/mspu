@@ -60,7 +60,9 @@ def test_df_diffs_identical():
 
 
 def test_df_diffs_different_indices():
-    """Test df_diffs with different indices"""
+    """
+    Test df_diffs with different indices
+    """
     df1 = pd.DataFrame(
         {
             'fruit': ['apple', 'banana'],

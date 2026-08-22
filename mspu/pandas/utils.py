@@ -1,6 +1,7 @@
 import datetime
 
 import pandas as pd
+from typing import Literal
 
 
 @pd.api.extensions.register_dataframe_accessor('ht')
@@ -15,9 +16,10 @@ class PdHt:
         w: int = -1,
         cw: int = None,
         r: int = None,
+        t: bool = False,
     ) -> None:
         """
-        Pandas head and tail in one command, with optional rounding.
+        Pandas head and tail in one command `ht`, with optional rounding.
 
         Parameters
         ----------
@@ -34,6 +36,8 @@ class PdHt:
         r : int
             Number of decimal places to round float columns. If None or negative,
             no rounding will be applied.
+        t : bool
+            If True, transpose the DataFrame before displaying.
 
         Returns
         -------
@@ -73,20 +77,31 @@ class PdHt:
             float_cols = df.select_dtypes(include='float').columns
             df[float_cols] = df[float_cols].round(r)
 
+        if t:
+            n = c
+            c = df.shape[0]
+        else:
+            n = df.shape[0]
+
         with pd.option_context(
             'display.show_dimensions',
             False,
             'display.width',
             w,
             'display.max_rows',
-            df.shape[0],
+            n,
             'display.max_columns',
             c,
             'display.max_colwidth',
             cw,
         ):
-            print(f'shape: {self._obj.shape}')
-            print(df)
+            if not t:
+                print(f'shape: {self._obj.shape}')
+                print(df)
+            else:
+                nr, nc = self._obj.shape
+                print(f'shape: ({nc}, {nr})')
+                print(df.T)
 
 
 def create_empty_df(
@@ -94,34 +109,143 @@ def create_empty_df(
     ind_types: dict[str, str] = None,
 ) -> pd.DataFrame:
     """
-    Create an empty df with specified index and column types
-    col_types: column name and type
-    ind_types: index level name and type
+    Create an empty df with specified index and column types.
+
+    Parameters
+    ----------
+    col_types : dict[str, str]
+        Column name and type.
+    ind_types : dict[str, str], optional
+        Index level name and type.
+
+    Returns
+    -------
+    pd.DataFrame
+        An empty DataFrame with the specified index and column types.
     """
     if ind_types is None:
         ind_types = {}
-    df = pd.DataFrame({
-        key: pd.Series(dtype=value)
-        for key, value in {**ind_types, **col_types}.items()
-    })
+    df = pd.DataFrame(
+        {
+            key: pd.Series(dtype=value)
+            for key, value in {**ind_types, **col_types}.items()
+        }
+    )
     if ind_types:
         df = df.set_index(list(ind_types.keys()))
     return df
 
 
-def explode_int_range(df, col, start_col, end_col, step=1):
+def explode_int_range(
+    df: pd.DataFrame,
+    start_col: str,
+    end_col: str,
+    col: str,
+    step: int = 1,
+    min_val: int = None,
+    max_val: int = None,
+    inclusive: Literal['both', 'left', 'right', 'neither'] = 'both',
+    drop_range_cols: bool = True,
+) -> pd.DataFrame:
+    """
+    Explodes a DataFrame with integer ranges into individual rows.
+
+    Index is ignored, and a new index is created.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The input DataFrame containing the integer ranges.
+    start_col : str
+        The name of the column representing the start of the range.
+    end_col : str
+        The name of the column representing the end of the range.
+    col : str
+        The name of the new column that will contain the exploded values.
+    step : int, optional
+        The step size for the range. Default is 1.
+    min_val : int, optional
+        The minimum value to limit the start of the range. If None, no limit is applied.
+    max_val : int, optional
+        The maximum value to limit the end of the range. If None, no limit is applied.
+    inclusive : {'both', 'left', 'right', 'neither'}, optional
+        Specifies whether to include the start and/or end values in the exploded range.
+        Default is 'both'.
+    drop_range_cols : bool, optional
+        Whether to drop the start_col and end_col from the resulting DataFrame.
+        Default is True.
+
+    Returns
+    -------
+    pd.DataFrame
+        A new DataFrame with the exploded integer ranges.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> from mspu.pandas import explode_int_range
+    >>> df = pd.DataFrame({
+    ...     'project': ['a', 'b'],
+    ...     'start_year': [2024, 2026],
+    ...     'end_year': [2025, 2029],
+    ... })
+    >>> d1 = explode_int_range(
+    ...     df=df,
+    ...     start_col='start_year',
+    ...     end_col='end_year',
+    ...     col='year',
+    ...     inclusive='left',
+    ...     max_val=2028,
+    ... )
+    >>> d1.ht(-1)
+    shape: (3, 2)
+    project  year
+    0       a  2024
+    1       b  2026
+    1       b  2027
+    """
     if df.empty:
-        dt = create_empty_df({
-            'i': 'int',
-            'v': 'int',
-        })
+        dt = create_empty_df(
+            {
+                'i': 'int',
+                'v': 'int',
+            }
+        )
     else:
-        dt = pd.concat([
-            pd.DataFrame({'i': i, 'v': range(start, end + 1, step)})
-            for i, (start, end) in enumerate(zip(df[start_col], df[end_col]))
-        ])
+        # limit start_value and replace null with min_val
+        if min_val is not None:
+            df[start_col] = (
+                df[start_col].fillna(min_val).where(df[start_col] > min_val, min_val)
+            )
+        # limit end_value and replace null with max_val
+        if max_val is not None:
+            df[end_col] = (
+                df[end_col].fillna(max_val).where(df[end_col] < max_val, max_val)
+            )
+
+        # handle inclusive parameter
+        start_offset = 1
+        end_offset = 0
+        if inclusive in ['left', 'both']:
+            start_offset = 0
+        if inclusive in ['right', 'both']:
+            end_offset = 1
+
+        dt = pd.concat(
+            [
+                pd.DataFrame(
+                    {'i': i, 'v': range(start + start_offset, end + end_offset, step)}
+                )
+                for i, (start, end) in enumerate(zip(df[start_col], df[end_col]))
+            ]
+        )
     dt = dt.set_index('i').rename_axis(None, axis=0)
-    df = df.reindex(dt.index).assign(**{col: dt.v})
+
+    # drop start_col and end_col
+    if drop_range_cols:
+        df = df.drop(columns=[start_col, end_col])
+
+    df = df.reset_index(drop=True).reindex(dt.index).assign(**{col: dt.v})
     return df
 
 

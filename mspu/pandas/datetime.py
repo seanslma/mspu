@@ -149,79 +149,79 @@ def explode_date_range(
     df[start_date_col] = pd.to_datetime(df[start_date_col])
     df[end_date_col] = pd.to_datetime(df[end_date_col])
 
-    # offset start date
-    if start_date_offset is not None:
-        df[start_date_col] += start_date_offset
-
-    # roll start date
-    if start_date_roll is not None:
-        roll_freq = freq if freq[-1] != 'S' else freq[:-1]
-        extra_period = 0 if start_date_roll == 'backward' else 1
-        df[start_date_col] = (
-            df[start_date_col].dt.to_period(roll_freq) + extra_period
-        ).dt.start_time
-
-    # limit start_date and replace null with min_date
-    if min_date is not None:
-        min_date = pd.to_datetime(min_date)
-        df[start_date_col] = (
-            df[start_date_col]
-            .fillna(min_date)
-            .where(df[start_date_col] > min_date, min_date)
-        )
-
-    # offset end date
-    if end_date_offset is not None:
-        df[end_date_col] += end_date_offset
-
-    # roll end date
-    if end_date_roll is not None:
-        roll_freq = freq if freq[-1] != 'S' else freq[:-1]
-        extra_period = 0 if end_date_roll == 'backward' else 1
-        df[end_date_col] = (
-            df[end_date_col].dt.to_period(roll_freq) + extra_period
-        ).dt.start_time
-
-    # limit end_date and replace null with max_date
-    if max_date is not None:
-        max_date = pd.to_datetime(max_date)
-        df[end_date_col] = (
-            df[end_date_col]
-            .fillna(max_date)
-            .where(df[end_date_col] < max_date, max_date)
-        )
-
-    # FIXME: special regarding pandas version
-    pd_version = tuple(int(n) for n in pd.__version__.split('.')[:3])
-    if pd_version >= (1, 4, 0):
-        inclusive_par = {'inclusive': inclusive}
-    else:
-        if inclusive == 'neither':
-            inclusive = 'right'
-            df[end_date_col] -= pd.DateOffset(microseconds=1)
-        inclusive_par = {'closed': None if inclusive == 'both' else inclusive}
-
-    # if inclusive = 'left' we expect date_end is exclusive
-    #   so records with start_date == end_date should be excluded
-    # also reset index to ensure index start from 0 and is consecutive
-    if inclusive == 'left':
-        df = df.query(f'{start_date_col} < {end_date_col}').reset_index(drop=True)
-    else:
-        df = df.query(f'{start_date_col} <= {end_date_col}').reset_index(drop=True)
-
     # get exploded timestamp column
     if df.empty:
         dt = (
             pd.DataFrame(
                 {
                     'i': pd.Series(dtype='int'),
-                    date_col: pd.Series(dtype='datetime64[ns]'),
+                    date_col: pd.Series(dtype='datetime64[us]'),
                 }
             )
             .set_index('i')
             .rename_axis(None, axis=0)
         )
     else:
+        # offset start date
+        if start_date_offset is not None:
+            df[start_date_col] += start_date_offset
+
+        # roll start date
+        if start_date_roll is not None:
+            roll_freq = freq if freq[-1] != 'S' else freq[:-1]
+            extra_period = 0 if start_date_roll == 'backward' else 1
+            df[start_date_col] = (
+                df[start_date_col].dt.to_period(roll_freq) + extra_period
+            ).dt.start_time
+
+        # limit start_date and replace null with min_date
+        if min_date is not None:
+            min_date = pd.to_datetime(min_date)
+            df[start_date_col] = (
+                df[start_date_col]
+                .fillna(min_date)
+                .where(df[start_date_col] > min_date, min_date)
+            )
+
+        # offset end date
+        if end_date_offset is not None:
+            df[end_date_col] += end_date_offset
+
+        # roll end date
+        if end_date_roll is not None:
+            roll_freq = freq if freq[-1] != 'S' else freq[:-1]
+            extra_period = 0 if end_date_roll == 'backward' else 1
+            df[end_date_col] = (
+                df[end_date_col].dt.to_period(roll_freq) + extra_period
+            ).dt.start_time
+
+        # limit end_date and replace null with max_date
+        if max_date is not None:
+            max_date = pd.to_datetime(max_date)
+            df[end_date_col] = (
+                df[end_date_col]
+                .fillna(max_date)
+                .where(df[end_date_col] < max_date, max_date)
+            )
+
+        # FIXME: special regarding pandas version
+        pd_version = tuple(int(n) for n in pd.__version__.split('.')[:3])
+        if pd_version >= (1, 4, 0):
+            inclusive_par = {'inclusive': inclusive}
+        else:
+            if inclusive == 'neither':
+                inclusive = 'right'
+                df[end_date_col] -= pd.DateOffset(microseconds=1)
+            inclusive_par = {'closed': None if inclusive == 'both' else inclusive}
+
+        # if inclusive = 'left' we expect date_end is exclusive
+        #   so records with start_date == end_date should be excluded
+        # also reset index to ensure index start from 0 and is consecutive
+        if inclusive == 'left':
+            df = df.query(f'{start_date_col} < {end_date_col}').reset_index(drop=True)
+        else:
+            df = df.query(f'{start_date_col} <= {end_date_col}').reset_index(drop=True)
+
         dt = (
             pd.concat(
                 [

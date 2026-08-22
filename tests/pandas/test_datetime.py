@@ -81,7 +81,7 @@ def test_with_roll():
 def test_empty_dataframe():
     df = pd.DataFrame(columns=['start_date', 'end_date'])
     result = explode_date_range(df, 'start_date', 'end_date', freq='1h')
-    expected = pd.DataFrame(columns=['ts'], dtype='datetime64[ns]')
+    expected = pd.DataFrame(columns=['ts'], dtype='datetime64[us]')
 
     assert_frame_equal(result, expected)
 

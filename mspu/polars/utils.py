@@ -15,9 +15,10 @@ class PlHt:
         w: int = -1,
         cw: int = None,
         r: int = None,
+        t: bool = False,
     ) -> None:
         """
-        Polars head and tail in one command, with optional rounding.
+        Polars head and tail in one command `ht`, with optional rounding.
 
         Parameters
         ----------
@@ -34,6 +35,8 @@ class PlHt:
         r : int
             Number of decimal places to round float and decimal columns. If None or negative,
             no rounding will be applied.
+        t : bool
+            If True, transpose the DataFrame before displaying.
 
         Returns
         -------
@@ -59,21 +62,43 @@ class PlHt:
         │ 3.14 ┆ … ┆ z   │
         └──────┴───┴─────┘
         """
-        if n < 0 or self._df.shape[0] < 2 * n:
-            df = self._df
+        if not t:
+            dt = self._df
         else:
-            df = pl.concat([self._df[:n], self._df[-n:]])
+            dt = self._df.with_row_index('ri_').with_columns(
+                pl.col('ri_').cast(pl.String),
+            )
+        if n < 0 or dt.shape[0] < 2 * n:
+            df = dt
+        else:
+            df = pl.concat([dt[:n], dt[-n:]])
         if r is not None and r >= 0:
             df = df.with_columns((cs.float() | cs.decimal()).round(r))
+        if t:
+            n = c
+            c = df.shape[0]
+        else:
+            n = df.shape[0]
         with pl.Config(
             tbl_hide_dataframe_shape=True,
             tbl_width_chars=w,
-            tbl_rows=df.shape[0],
+            tbl_rows=n,
             tbl_cols=c,
             fmt_str_lengths=cw,
         ):
-            print(f'shape: {self._df.shape}')
-            print(df)
+            if not t:
+                print(f'shape: {self._df.shape}')
+                print(df)
+            else:
+                nr, nc = self._df.shape
+                print(f'shape: ({nc}, {nr})')
+                print(
+                    df.transpose(
+                        include_header=True,
+                        header_name='col',
+                        column_names='ri_',
+                    )
+                )
 
 
 def parquet_to_csv(filepath: str) -> None:
@@ -109,7 +134,8 @@ def lowercase_polars_df(
 
 
 def to_float32_polars_df(
-    df: pl.DataFrame, convert_int_cols: bool = False
+    df: pl.DataFrame,
+    convert_int_cols: bool = False,
 ) -> pl.DataFrame:
     """
     Convert float and decimal columns to float32 to reduce memory usage.
@@ -136,7 +162,11 @@ def to_float32_polars_df(
     return df.with_columns(cols.cast(pl.Float32))
 
 
-def _count_vals(df: pl.DataFrame, method: str, out_col: str) -> pl.DataFrame:
+def _count_vals(
+    df: pl.DataFrame,
+    method: str,
+    out_col: str,
+) -> pl.DataFrame:
     """
     Count special values (infinite, NaN) in a DataFrame.
 
