@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "mspu"
 dynamic = ["version"]
-description = "Ma's python utils package."
+description = "Minimal Set of Python Utilities: Lightweight utilities for pandas and Polars"
 authors = [
     {name = "Sean Ma", email = "sean.sl.ma@gmail.com"},
 ]
@@ -35,3 +35,6 @@ target-version = "py312"
 [tool.ruff.format]
 preview = false
 quote-style = "single"
+
+[tool.ruff.lint]
+ignore = ["I001", "RUF013"]

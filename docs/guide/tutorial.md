@@ -15,8 +15,7 @@ When you print a pandas DataFrame, sometimes the default settings are not good e
 
 ```py
 import pandas as pd
-from mspu.pandas import pd_ht
-pd.DataFrame.ht = pd_ht
+import mspu.pandas
 df = pd.DataFrame({
   'foo': [1.12345, 2.98765, 3.14159],
   'bar': [7, 8, 9],

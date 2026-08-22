@@ -89,6 +89,18 @@ html_show_sphinx = True
 # Preserve the defaults in signatures
 autodoc_preserve_defaults = True
 
+# Mock imports for modules that are not available in the documentation environment
+autodoc_mock_imports = []
+
+autodoc_class_signature = 'separated'
+
+# Include special members like __call__ in the documentation, but exclude __init__
+autodoc_default_options = {
+    'members': True,
+    'special-members': '__call__',
+    'exclude-members': '__init__',
+}
+
 # -- Sphinx autodoc typehints configuration ----------------------------------
 # This prevents duplicate parameter documentation in the body
 # typehints_defaults = "comma"
@@ -99,9 +111,6 @@ numpydoc_show_class_members = False
 
 # Don't show type hints in the parameter descriptions since they're in signature
 numpydoc_show_type_hint = False
-
-# Mock imports for modules that are not available in the documentation environment
-autodoc_mock_imports = []
 
 # Global setup for doctests
 doctest_global_setup = """

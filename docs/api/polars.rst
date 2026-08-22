@@ -5,6 +5,18 @@ polars
 
 .. currentmodule:: mspu.polars
 
+Accessors
+~~~~~~~~~
+
+.. autosummary::
+   :toctree: api/
+
+   PlHt
+
+.. note::
+   Registered as ``df.ht(...)`` on any :class:`polars.DataFrame`
+   via :func:`polars.api.register_dataframe_namespace`.
+
 Functions
 ~~~~~~~~~
 
@@ -12,7 +24,6 @@ Functions
    :toctree: api/
    :nosignatures:
 
-   pl_ht
    inf_count
    nan_count
    nul_count
